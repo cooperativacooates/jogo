@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jogo de Letras, Números e Sílabas</title>
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet"> <!-- Material Icons -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+            background-color: #f0f8ff; /* Fundo suave */
+        }
+        h1 {
+            color: #333;
+            font-size: 40px;
+            margin-bottom: 30px;
+        }
+        #letter {
+            font-size: 250px; /* Aumenta o tamanho da letra */
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #007bff; /* Cor azul para a letra */
+        }
+        #num, #syllable {
+            font-size: 50px; /* Tamanho das sílabas e números */
+            font-weight: normal;
+            margin-top: 20px;
+            color: #007bff; /* Cor azul para sílabas e números */
+        }
+        input {
+            font-size: 40px;
+            padding: 20px;
+            width: 300px;
+            margin-top: 20px;
+            border-radius: 10px;
+            border: 2px solid #ccc;
+            transition: border-color 0.3s ease;
+        }
+        input:focus {
+            border-color: #4CAF50; /* Cor verde quando o campo de entrada estiver em foco */
+            outline: none;
+        }
+        #message {
+            font-size: 24px;
+            margin-top: 20px;
+        }
+        #score-container {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 50px;
+            color: #32CD32; /* Cor verde para destacar a pontuação */
+            display: flex;
+            align-items: center;
+            font-weight: bold;
+        }
+        #score {
+            margin-left: 10px;
+            font-size: 40px;
+            color: #32CD32; /* Verde para a pontuação */
+        }
+        #score-container span {
+            font-size: 50px; /* Ícone de troféu em tamanho grande */
+            color: #32CD32; /* Cor verde */
+        }
+        #timer {
+            font-size: 50px;
+            font-weight: bold;
+            color: red; /* Cor vermelha para o cronômetro */
+        }
+        .correct {
+            color: green;
+            font-weight: bold;
+        }
+        .wrong {
+            color: red;
+            font-weight: bold;
+        }
+        #instructions {
+            font-size: 20px;
+            color: #555;
+            margin-bottom: 20px;
+        }
+        #enter-indicator {
+            margin-top: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 20px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jogo de Letras, Números e Sílabas</h1>
+
+    <!-- Exibe a letra, sílaba ou número -->
+    <div id="letter"></div>
+    
+    <!-- Entrada para a resposta -->
+    <input type="text" id="userInput" placeholder="" autofocus />
+    <div id="message"></div>
+
+    <!-- Exibe a pontuação no lado superior direito com o ícone de troféu -->
+    <div id="score-container">
+        <span class="material-icons">emoji_events</span> <!-- Ícone de troféu -->
+        <div id="score">0</div> <!-- Pontuação numérica -->
+    </div>
+
+    <!-- Exibe o cronômetro -->
+    <div id="timer">00:20</div> <!-- Exibição do cronômetro de 20 segundos -->
+
+    <!-- Mensagem de instrução -->
+    <div id="enter-indicator">Pressione <strong>Enter</strong> para confirmar sua resposta</div>
+
+    <script>
+        // Conjunto de sílabas aleatórias
+        const syllables = [
+            "BA", "BE", "BI", "BO", "BU", 
+            "CA", "CE", "CI", "CO", "CU", 
+            "DA", "DE", "DI", "DO", "DU", 
+            "E", "FA", "FE", 
+            "FI", "FO", "FU", "GA", "GE", 
+            "GI", "GO", "GU", "HA", "HE", 
+            "HI", "HO", "HU", "I", 
+            "JA", "JE", "JI", "JO", 
+            "JU", "KA", "KE", "KI", "KO", 
+            "KU", "LA", "LE", "LI", "LO", 
+            "LU", "MA", "ME", "MI", "MO", 
+            "MU", "NA", "NE", "NI", "NO", 
+            "NU", "O", "PA", 
+            "PE", "PI", "PO", "PU", "RA", 
+            "RE", "RI", "RO", "RU", "SA", 
+            "SE", "SI", "SO", "SU", "TA", 
+            "TE", "TI", "TO", "TU", "VA", 
+            "VE", "VI", "VO", "VU", "WA", 
+            "WE", "WI", "WO", "WU", "YA", 
+            "YE", "YI", "YO", "YU", "ZA", 
+            "ZE", "ZI", "ZO", "ZU"
+        ];
+
+        const numbers = Array.from({ length: 50 }, (_, i) => (i + 1).toString()); // Números de 1 a 50
+        const letters = Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)); // Letras de A a Z
+        const allChoices = [...letters, ...syllables, ...numbers]; // Combina letras, sílabas e números
+
+        let currentChoice;
+        let score = 0;
+        let timer = 20; // Cronômetro de 20 segundos
+        let timerInterval;
+
+        // Função para gerar uma opção aleatória de letra, sílaba ou número
+        function generateChoice() {
+            currentChoice = allChoices[Math.floor(Math.random() * allChoices.length)];
+            document.getElementById("letter").innerText = currentChoice; // Exibe a letra, sílaba ou número
+
+            document.getElementById("message").innerText = ""; // Limpa a mensagem de acerto
+            document.getElementById("message").classList.remove("correct", "wrong"); // Limpa qualquer estilo anterior
+
+            resetTimer(); // Reinicia o cronômetro com cada novo item gerado
+        }
+
+        // Função para atualizar a pontuação (10 para acerto, -5 para erro)
+        function updateScore(isCorrect) {
+            if (isCorrect) {
+                score += 10; // Aumenta 10 pontos para acerto
+                document.getElementById("score").innerText = score;
+            } else {
+                score -= 5;  // Diminui 5 pontos para erro
+                document.getElementById("score").innerText = score;
+                setTimeout(generateChoice, 1000); // Troca para a próxima letra após 1 segundo
+            }
+        }
+
+        // Função para atualizar o cronômetro
+        function updateTimer() {
+            const minutes = Math.floor(timer / 60);
+            const seconds = timer % 60;
+            document.getElementById("timer").innerText = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+            if (timer === 0) {
+                updateScore(false); // Se o tempo acabar, vai para a próxima letra e desconta pontos
+                resetTimer(); // Reinicia o cronômetro quando o tempo acaba
+            } else {
+                timer--; // Decrementa o tempo a cada segundo
+            }
+        }
+
+        // Função para reiniciar o cronômetro a cada acerto
+        function resetTimer() {
+            clearInterval(timerInterval); // Para o cronômetro atual
+            timer = 20; // Reinicia para 20 segundos
+            timerInterval = setInterval(updateTimer, 1000); // Inicia o cronômetro novamente
+        }
+
+        // Função para verificar se a letra, sílaba ou número digitado está correto
+        function checkInput(event) {
+            const userInput = event.target.value.trim().toUpperCase();
+
+            if (userInput === currentChoice) {
+                updateScore(true);  // Atualiza a pontuação por acerto
+                document.getElementById("message").innerText = "Parabéns! Você acertou!";
+                document.getElementById("message").classList.add("correct");
+                setTimeout(generateChoice, 1000); // Troca para a próxima letra após 1 segundo
+            } else {
+                updateScore(false);  // Atualiza a pontuação por erro
+                document.getElementById("message").innerText = "Tente novamente!";
+                document.getElementById("message").classList.add("wrong");
+            }
+
+            event.target.value = ""; // Limpa o campo de entrada
+        }
+
+        // Inicializar o jogo e o cronômetro
+        document.getElementById("userInput").addEventListener("keypress", function(event) {
+            if (event.key === 'Enter' && event.target.value.trim() !== "") {
+                checkInput(event); // Só verifica se o campo não está vazio
+            }
+        });
+
+        // Inicia o cronômetro
+        timerInterval = setInterval(updateTimer, 1000);
+        generateChoice(); // Gera a primeira letra ou número
+    </script>
+</body>
+</html>
